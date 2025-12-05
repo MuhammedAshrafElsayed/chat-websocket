@@ -1,5 +1,8 @@
 const http = require("http");
+const { url } = require("inspector");
 const WebSocketServer = require("websocket").server;
+
+const connections = {};
 
 const server = http.createServer((req, res) => {
     res.writeHead(200, { 'Content-Type': 'text/plain' });
@@ -16,7 +19,37 @@ const wsServer = new WebSocketServer({
 });
 
 
+wsServer.on('request', (request) => {
+    console.log("request recieved", request.resource.replace("/", ""));
+    const connection = request.accept(null);
+    console.log("request accepted");
 
+    connection.on("message", (message) => {
+        console.log("message", message);
+        switch (message.type) {
+            case "utf8":
+                const jsonMessage = JSON.parse(message.utf8Data);
+                console.log(`message to ${connections[jsonMessage.userId]}`);
+                
+                if(connections[jsonMessage.userId] && connections[jsonMessage.userId].connected) {
+                    console.log(`message from ${connections[jsonMessage.userId].connected}`);
+                    connections[jsonMessage.userId].send(jsonMessage.content);
+                }
+
+                break;
+            case "binary":
+                connection.send(message.binaryData);
+                break;
+        
+            default:
+                break;
+        }
+    });
+
+    connections[request.resource.replace("/", "")] = connection;
+    console.log(Object.keys(connections));
+    
+})
 
 
 

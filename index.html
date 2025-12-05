@@ -10,6 +10,7 @@
         <div id="chatbox">
             <button id="connectButton">Connect</button>
             <span id="status">Disconnected</span>
+            <input type="text" id="userId" placeholder="Type the callee user" required />
 
             <ul id="messages"></ul>
 
@@ -23,12 +24,14 @@
             </form>
         </div>
     </div>
+    
 </body>
 
 <script>
 
 
     const connectButton = document.getElementById("connectButton");
+    const userIdHtml = document.getElementById("userId");
     const disconnectButton = document.getElementById("disconnectButton");
     const submitButton = document.getElementById("messageForm");
     const messageInput = document.getElementById("messageInput");
@@ -37,8 +40,11 @@
     const messagesList = document.getElementById("messages");
     const messageForm = document.getElementById("messageForm");
 
-    // const wsUrl = "ws://localhost:8080/chat";
-    const wsUrl = "wss://echo.websocket.org";
+    const user = window.location.hash.replace("#", "");
+    console.log("user test", user);
+    
+    const wsUrl = `ws://192.168.100.53:3000/${user}`;
+    // const wsUrl = "wss://echo.websocket.org";
 
     let socket = null;
     connectButton.addEventListener("click", (e) => {
@@ -57,12 +63,13 @@
         });
 
         socket.addEventListener("error", (errorEvent) => {
+            errorSpan.innerText = `error: ${errorEvent.type}`;
         });
 
         socket.addEventListener("message", (msgEvent) => {
             const receivedMessage = msgEvent.data;
             const messageItem = document.createElement("li");
-            messageItem.textContent = `Server: ${receivedMessage}`;
+            messageItem.textContent = `${userIdHtml.value}: ${receivedMessage}`;
             messagesList.appendChild(messageItem);
         });
     });
@@ -73,13 +80,19 @@
 
     messageForm.addEventListener("submit", (e) => {
         e.preventDefault();
-        const message = messageInput.value;
-        console.log(`Sending message: ${message}`);
-        socket.send(message);
+        const value = messageInput.value;
+        
+        // const user = window.location.hash.replace("#", "");
+        const user = userIdHtml.value;
+        console.log(`Sending message: ${value} to ${user}`);
+       
+        const message = {userId: user , content:  value}
+        
+        socket.send(JSON.stringify(message));
         messageInput.value = "";
 
         const messageItem = document.createElement("li");
-        messageItem.textContent = `You: ${message}`;
+        messageItem.textContent = `You: ${message.content}`;
         messagesList.appendChild(messageItem);
     });
 
